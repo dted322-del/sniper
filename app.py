@@ -1,7 +1,7 @@
 import streamlit as st
 
 # Configuration simple sans symboles speciaux
-st.set_page_config(page_title=&quot;SNIPER OS&quot;, page_icon=&quot;��&quot;)
+st.set_page_config(page_title=&quot;SNIPER OS&quot;, page_icon=&quot;""&quot;)
 
 st.markdown(&quot;&lt;h1 style=&#39;color:green;&#39;&gt;SNIPER OS CONNECTE&lt;/h1&gt;&quot;,
 unsafe_allow_stdio=True)
