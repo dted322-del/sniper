@@ -1,24 +1,45 @@
 import streamlit as st
 
-# Configuration simple
-st.set_page_config(page_title="SNIPER OS", page_icon="🎯")
+# 1. STYLE LUXE (Toujours sans accents pour eviter les bugs)
+st.set_page_config(page_title="SNIPER OS", page_icon="💎", layout="wide")
 
-# Titre principal
-st.markdown("# 🎯 SNIPER OS : OPERATIONNEL")
-st.success("Bravo ! Connexion reussie.")
+st.markdown("""
+    <style>
+    .stApp { background-color: #050505; color: white; }
+    h1 { color: #00ff00; text-shadow: 0 0 10px #00ff00; text-align: center; font-family: sans-serif; }
+    .stButton>button { background-color: #00ff00; color: black; font-weight: bold; border-radius: 10px; }
+    </style>
+    """, unsafe_allow_stdio=True)
 
-# Navigation
-page = st.sidebar.selectbox("MENU", ["Radar", "Calculateur"])
+st.markdown("# 💎 SNIPER OS : ELITE EDITION")
 
-if page == "Radar":
-    st.header("🚀 Radar de Recherche")
-    produit = st.text_input("Produit a analyser :", "Accessoires Fitness")
-    st.write(f"Analyse en cours pour : {produit}")
-    st.link_button("VOIR SUR AMAZON", f"https://www.amazon.fr/s?k={produit}")
+# 2. NAVIGATION
+menu = st.sidebar.radio("COMMANDES", ["🚀 RADAR", "📈 PROFITS", "🛡️ VALIDATEUR"])
 
-if page == "Calculateur":
-    st.header("📈 Calculateur de Profit")
-    ca = st.number_input("Chiffre d'affaires mensuel vise (EUR) :", value=1000)
-    profit = ca * 0.25
-    st.metric("Profit Net estime (25%)", f"{profit} EUR")
+if menu == "🚀 RADAR":
+    st.subheader("Analyseur de Failles Amazon")
+    niche = st.text_input("Quelle niche analyser ?", "Yoga")
+    st.link_button(f"VOIR LES FAILLES : {niche.upper()}", f"https://www.amazon.fr/s?k={niche}")
+
+if menu == "📈 PROFITS":
+    st.subheader("Calculateur de Liberté")
+    ca = st.number_input("CA Mensuel vise (€)", value=5000)
+    marge = st.slider("Marge Nette (%)", 10, 50, 25)
+    profit = int(ca * (marge/100))
+    st.metric("PROFIT NET MENSUEL", f"{profit} €")
+    st.info(f"Soit {profit * 12} € par an.")
+
+if menu == "🛡️ VALIDATEUR":
+    st.subheader("Criteres Anti-Echec")
+    c1 = st.checkbox("Poids < 1.2kg")
+    c2 = st.checkbox("Prix > 35€")
+    c3 = st.checkbox("Avis concurrents < 4.2 stars")
+    if c1 and c2 and c3:
+        st.success("FEU VERT : PRODUIT GAGNANT")
+    else:
+        st.warning("ATTENTION : Verifiez les criteres manquants")
+
+st.sidebar.write("---")
+st.sidebar.info("Code UGC : VIBECUT")
+
  
