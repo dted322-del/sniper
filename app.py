@@ -1,5 +1,3 @@
-
- 
 mport streamlit as st
 
 # Setup de base
