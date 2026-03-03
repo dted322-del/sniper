@@ -1,22 +1,24 @@
-mport streamlit as st
+import streamlit as st
 
-# Setup de base
+# Configuration simple
 st.set_page_config(page_title="SNIPER OS", page_icon="🎯")
 
+# Titre principal
 st.markdown("# 🎯 SNIPER OS : OPERATIONNEL")
-st.success("L'application fonctionne enfin !")
+st.success("Bravo ! Connexion reussie.")
 
-# Menu simple
-menu = st.sidebar.radio("MENU", ["Recherche", "Calculateur"])
+# Navigation
+page = st.sidebar.selectbox("MENU", ["Radar", "Calculateur"])
 
-if menu == "Recherche":
-    niche = st.text_input("Produit a analyser :", "Yoga")
-    st.write(f"Analyse pour : {niche}")
-    st.link_button("VOIR SUR AMAZON", f"https://www.amazon.fr/s?k={niche}")
+if page == "Radar":
+    st.header("🚀 Radar de Recherche")
+    produit = st.text_input("Produit a analyser :", "Accessoires Fitness")
+    st.write(f"Analyse en cours pour : {produit}")
+    st.link_button("VOIR SUR AMAZON", f"https://www.amazon.fr/s?k={produit}")
 
-if menu == "Calculateur":
+if page == "Calculateur":
+    st.header("📈 Calculateur de Profit")
     ca = st.number_input("Chiffre d'affaires mensuel vise (EUR) :", value=1000)
     profit = ca * 0.25
-    st.metric("Profit Net Estime (25%)", f"{profit} EUR")
-
+    st.metric("Profit Net estime (25%)", f"{profit} EUR")
  
