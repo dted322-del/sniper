@@ -96,17 +96,23 @@ def pain_point_analyzer(df):
     else:
         return "💎 QUALITÉ ÉLEVÉE : Le marché est mature. Il faudra innover sur le design ou le prix pour gagner."
 def get_amazon_suggestions(keyword):
-    """Récupère les suggestions d'auto-complétion réelles d'Amazon"""
+    """Récupère les suggestions d'auto-complétion RÉELLES d'Amazon France"""
     if not keyword: return []
     try:
-        url = f"https://completion.amazon.com/api/2017/suggestions?session-id=123-1234567-1234567&customer-id=&request-id=12345&page-type=Gateway&parameter1=multi-search&search-alias=aps&client-info=amazon-search-ui&mid=A13V1IB3VIYZZH&alias=aps&b2b=0&fresh=0&ks=83&prefix={urllib.parse.quote(keyword)}&event=onKeyPress&limit=11&fb=1&sn=&ql=1&lc=fr_FR&sc=1"
-        headers = {"User-Agent": "Mozilla/5.0"}
+        # API Amazon France spécifique
+        url = f"https://completion.amazon.fr/search/complete?search-alias=aps&client=amazon-search-ui&m=A13V1IB3VIYZZH&q={urllib.parse.quote(keyword)}&lc=fr_FR"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            "Accept": "*/*"
+        }
         r = requests.get(url, headers=headers, timeout=5)
         if r.status_code == 200:
-            suggestions = [s['value'] for s in r.json()['suggestions']]
-            return suggestions
-    except:
-        return []
+            # L'API retourne un JSON type [query, [suggestions], [], ...]
+            res = r.json()
+            if len(res) > 1:
+                return res[1] # Liste des suggestions réelles
+    except Exception as e:
+        print(f"Erreur suggestions: {e}")
     return []
 def estimate_metrics(reviews, rating, price):
     """Cœur de l'algorithme Helium Sniper"""
@@ -187,9 +193,14 @@ def ultra_scan(query):
                 else:
                     av = random.randint(20, 300)
                 
-                # 5. Lien vers le produit
-                link_tag = i.find("a", {"class": "a-link-normal s-no-outline"})
-                link = "https://www.amazon.fr" + link_tag['href'] if link_tag else "#"
+                # 5. Lien vers le produit RÉEL (depuis le titre)
+                link_tag = i.h2.find("a", href=True) if i.h2 else i.find("a", href=True)
+                if link_tag and link_tag['href'].startswith('/'):
+                    link = "https://www.amazon.fr" + link_tag['href'].split('/ref=')[0]
+                elif link_tag and 'amazon.fr' in link_tag['href']:
+                    link = link_tag['href'].split('/ref=')[0]
+                else:
+                    link = "#"
                 
                 sales, rev = estimate_metrics(av, rt, p)
                 data.append({
