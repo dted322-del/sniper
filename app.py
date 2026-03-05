@@ -193,14 +193,14 @@ def ultra_scan(query):
                 else:
                     av = random.randint(20, 300)
                 
-                # 5. Lien vers le produit RÉEL (depuis le titre)
-                link_tag = i.h2.find("a", href=True) if i.h2 else i.find("a", href=True)
-                if link_tag and link_tag['href'].startswith('/'):
-                    link = "https://www.amazon.fr" + link_tag['href'].split('/ref=')[0]
-                elif link_tag and 'amazon.fr' in link_tag['href']:
-                    link = link_tag['href'].split('/ref=')[0]
+            # 5. Lien vers le produit RÉEL (Nettoyage pro)
+                link_tag = i.find("a", href=True)
+                if link_tag and "/dp/" in link_tag['href']:
+                    # On extrait le ASIN pour reconstruire un lien propre
+                    asin_match = re.search(r"/dp/([A-Z0-9]{10})", link_tag['href'])
+                    link = f"https://www.amazon.fr/dp/{asin_match.group(1)}" if asin_match else "https://www.amazon.fr" + link_tag['href'].split('/ref=')[0]
                 else:
-                    link = "#"
+                    link = "https://www.amazon.fr"
                 
                 sales, rev = estimate_metrics(av, rt, p)
                 data.append({
@@ -210,19 +210,15 @@ def ultra_scan(query):
                     "Avis": av, 
                     "Ventes/Mois": sales, 
                     "CA/Mois (€)": int(rev),
-                    "Lien": link
+                    "Lien": link,
+                    "Source": "📡 RÉEL"
                 })
-            except Exception:
-                # Si une ligne échoue, on continue avec les autres
-                continue
+            except Exception: continue
         
-        if len(data) < 3:
-            raise Exception("Trop peu de données extraites.")
-            
+        if len(data) < 2: raise Exception("Data empty")
         return pd.DataFrame(data)
     except Exception as e:
-        # Fallback intelligent vers simulation de War Room si erreur ou blocage
-        st.cache_data.clear() # On évite de cache l'erreur
+        # Fallback intelligent
         results = []
         for k in range(12):
             p = random.uniform(25, 95)
@@ -230,17 +226,12 @@ def ultra_scan(query):
             rt = random.uniform(3.6, 4.9)
             s, r = estimate_metrics(av, rt, p)
             results.append({
-                "💎 Produit": f"[SIMULATION] {query.upper()} {random.choice(['Expert', 'Pro', 'Ultra', 'Série Gold', 'V3'])}",
-                "Prix (€)": round(p, 2), 
-                "Note": round(rt, 1), 
-                "Avis": av, 
-                "Ventes/Mois": s, 
-                "CA/Mois (€)": int(r),
-                "Lien": "https://www.amazon.fr"
+                "💎 Produit": f"[ESTIMATION] {query.upper()} {random.choice(['Expert', 'Pro', 'Elite', 'Série Gold'])}",
+                "Prix (€)": round(p, 2), "Note": round(rt, 1), "Avis": av, "Ventes/Mois": s, "CA/Mois (€)": int(r),
+                "Lien": "https://www.amazon.fr",
+                "Source": "🧠 SIMULATION IA (Amazon Blocked)"
             })
-        df_mock = pd.DataFrame(results)
-        st.warning(f"⚠️ Mode Intelligence Artificielle activé : Amazon a bloqué l'accès direct. Les données affichées sont des estimations basées sur le benchmark du marché {query.upper()}.")
-        return df_mock
+        return pd.DataFrame(results)
 # --- 4. DASHBOARD ULTIME ---
 st.markdown("""
 <div class='war-room-header'>
@@ -272,30 +263,32 @@ with st.sidebar:
                 st.session_state.data = ultra_scan(query)
                 st.session_state.niche = query
         else: st.error("ERREUR: Cible non définie.")
-    st.markdown("### 💡 AUTO-SUGGESTIONS")
     if query:
-        if st.button("🔍 DÉCOUVRIR SOUS-NICHES"):
-            with st.spinner("Pénétration des tendances..."):
-                suggestions = get_amazon_suggestions(query)
-                if suggestions:
-                    st.session_state.suggestions = suggestions
-                else:
-                    # Fallback si API bloquée
-                    st.session_state.suggestions = [f"{query} professionnel", f"{query} premium", f"{query} sans fil", f"{query} usb c", f"{query} pack de 2"]
+        if st.button("🔍 DÉCOUVRIR SOUS-NICHES", type="secondary"):
+            with st.spinner("Analyse des tendances Amazon FR..."):
+                sugs = get_amazon_suggestions(query)
+                if sugs: st.session_state.suggestions = sugs
+                else: st.info("Aucune sous-niche trouvée pour ce terme.")
     
-    if 'suggestions' in st.session_state:
-        for s in st.session_state.suggestions:
-            if st.button(f"🎯 {s.upper()}", key=f"sug_{s}"):
-                st.session_state.search_query_input = s # On prépare le texte
+    if 'suggestions' in st.session_state and st.session_state.suggestions:
+        st.write("---")
+        st.caption("CLIQUEZ POUR SCANNER DIRECTEMENT :")
+        for s in st.session_state.suggestions[:8]:
+            if st.button(f"🎯 {s.upper()}", key=f"sug_btn_{s}", use_container_width=True):
+                st.session_state.search_query_input = s
+                with st.spinner(f"Scan éclair sur {s.upper()}..."):
+                    st.session_state.data = ultra_scan(s)
+                    st.session_state.niche = s
                 st.rerun()
-    if st.session_state.data is not None:
-        st.success("SYSTÈME PRÊT")
-        st.markdown("### 📉 FILTRES ÉLITE")
-        min_rev = st.slider("Revenue Min (€)", 0, 50000, 2000)
-        max_reviews = st.slider("Avis Max (Facilité)", 0, 5000, 1000)
-# --- ZONE DE COMBAT ---
 if st.session_state.data is not None:
     df = st.session_state.data
+    
+    # Badge de Statut (Transparent pour l'utilisateur sur la source)
+    source_type = df["Source"].iloc[0]
+    if "RÉEL" in source_type:
+        st.markdown(f"<div style='background:#004d13; color:#00ff41; padding:5px 15px; border-radius:30px; display:inline-block; font-size:12px; font-weight:bold; border:1px solid #00ff41; margin-bottom:10px;'>{source_type}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div style='background:#4d0000; color:#ff4b4b; padding:5px 15px; border-radius:30px; display:inline-block; font-size:12px; font-weight:bold; border:1px solid #ff4b4b; margin-bottom:10px;'>{source_type}</div>", unsafe_allow_html=True)
     
     # 1. KPI PANORAMIQUE
     c1, c2, c3, c4 = st.columns(4)
