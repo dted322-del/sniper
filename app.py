@@ -14,7 +14,7 @@ from collections import Counter
 import re
 # --- 1. CONFIGURATION ÉLITE ---
 st.set_page_config(
-    page_title="SNIPER OS | ULTIMATE WAR ROOM", 
+    page_title="SNIPER OS | REEL FR DATA", 
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -23,17 +23,8 @@ def local_css():
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap');
-        :root { 
-            --primary: #00ff41; 
-            --background: #020202; 
-            --surface: #0a0a0a; 
-            --text: #ffffff; 
-            --accent: #ff003c; 
-            --gold: #ffcc00;
-        }
+        :root { --primary: #00ff41; --background: #020202; --surface: #0a0a0a; --text: #ffffff; }
         .stApp { background-color: var(--background); color: var(--text); font-family: 'Inter', sans-serif; }
-        
-        /* Neon Header */
         .war-room-header {
             font-family: 'Orbitron', sans-serif;
             color: var(--primary);
@@ -41,120 +32,76 @@ def local_css():
             padding: 20px;
             border: 2px solid var(--primary);
             border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2), inset 0 0 10px rgba(0, 255, 65, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
             margin-bottom: 30px;
-            background: rgba(0, 255, 65, 0.02);
         }
-        /* Tactical Cards */
         .tactical-card {
             background: var(--surface);
             border-left: 4px solid var(--primary);
             padding: 20px;
             border-radius: 5px;
             margin-bottom: 15px;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
         }
-        
-        .metric-title { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .metric-title { font-size: 0.75rem; color: #888; text-transform: uppercase; }
         .metric-value { font-family: 'Orbitron'; font-size: 1.8rem; color: var(--primary); }
-        
-        /* Buttons */
         .stButton>button {
-            border-radius: 4px;
-            padding: 10px 25px;
+            width: 100%; border-radius: 4px; height: 3.8em;
             background: linear-gradient(90deg, #004d13 0%, #00ff41 100%) !important;
-            color: black !important;
-            font-weight: 800;
-            font-family: 'Orbitron';
-            border: none;
-            transition: all 0.3s;
+            color: black !important; font-weight: 800; font-family: 'Orbitron'; border: none;
         }
-        .stButton>button:hover { transform: scale(1.02); box-shadow: 0 0 15px var(--primary); }
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
         </style>
     """, unsafe_allow_html=True)
 local_css()
-# --- 2. FONCTIONS DE CALCUL AVANCÉES ---
+# --- 2. FONCTINS ANALYTIQUES ---
+def estimate_metrics(reviews, rating, price):
+    """Algorithme de prédiction de volume (Ratio FR)"""
+    factor = 65 
+    monthly_sales = int((reviews / 12) * factor * (1.2 if rating > 4.4 else 0.8))
+    monthly_sales = max(5, monthly_sales)
+    revenue = monthly_sales * price
+    return monthly_sales, revenue
 def get_keywords(titles):
-    """Analyse sémantique des titres pour le SEO Sniper"""
     words = []
     stopwords = ["le", "la", "les", "de", "des", "un", "une", "pour", "avec", "a", "et", "en", "sur", "du", "au"]
     for title in titles:
-        # Nettoyage
         clean = re.sub(r'[^\w\s]', '', title.lower())
         words.extend([w for w in clean.split() if len(w) > 2 and w not in stopwords])
     return Counter(words).most_common(10)
-def pain_point_analyzer(df):
-    """Analyse les points de friction probables basés sur les notes"""
-    avg_note = df["Note"].mean()
-    if avg_note < 4.0:
-        return "⚠️ FRAGILITÉ : Les avis suggèrent une mauvaise qualité de fabrication. Opportunité de créer un produit 'Renforcé'."
-    elif avg_note < 4.3:
-        return "🧐 LIVRAISON/PACKAGING : Beaucoup de clients se plaignent du packaging. Un bel unboxing vous donnera l'avantage."
-    else:
-        return "💎 QUALITÉ ÉLEVÉE : Le marché est mature. Il faudra innover sur le design ou le prix pour gagner."
 def get_amazon_suggestions(keyword):
-    """Récupère les suggestions d'auto-complétion RÉELLES d'Amazon France"""
     if not keyword: return []
     try:
-        # API Amazon France spécifique
         url = f"https://completion.amazon.fr/search/complete?search-alias=aps&client=amazon-search-ui&m=A13V1IB3VIYZZH&q={urllib.parse.quote(keyword)}&lc=fr_FR"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            "Accept": "*/*"
-        }
+        headers = {"User-Agent": "Mozilla/5.0"}
         r = requests.get(url, headers=headers, timeout=5)
         if r.status_code == 200:
-            # L'API retourne un JSON type [query, [suggestions], [], ...]
             res = r.json()
-            if len(res) > 1:
-                return res[1] # Liste des suggestions réelles
-    except Exception as e:
-        print(f"Erreur suggestions: {e}")
+            if len(res) > 1: return res[1]
+    except: return []
     return []
-def estimate_metrics(reviews, rating, price):
-    """Cœur de l'algorithme Helium Sniper"""
-    factor = 70 # Ratio Ventes/Avis moyen Amazon FR
-    monthly_sales = int((reviews / 12) * factor * (1.2 if rating > 4.4 else 0.8))
-    monthly_sales = max(random.randint(5, 50), monthly_sales)
-    revenue = monthly_sales * price
-    return monthly_sales, revenue
-# --- 3. MOTEUR D'EXTRACTION (MODE FANTÔME) ---
-# --- 3. MOTEUR D'EXTRACTION (MODE FANTÔME) ---
-@st.cache_data(ttl=3600)
-def ultra_scan(query):
-    """
-    Scrape Amazon.fr avec une tolérance élevée aux erreurs de parsing.
-    Si le scraping réel échoue totalement, bascule sur une simulation réaliste.
-    """
+# --- 3. MOTEUR D'EXTRACTION RÉELLE (SCRAPER BRUT) ---
+@st.cache_data(ttl=600)
+def fetch_real_amazon_data(query):
+    """Scraper brut sans redirection ni simulation."""
     data = []
+    url = f"https://www.amazon.fr/s?k={urllib.parse.quote_plus(query)}"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Accept-Language": "fr-FR,fr;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Referer": "https://www.google.com/",
+        "Connection": "keep-alive"
+    }
     try:
-        url = f"https://www.amazon.fr/s?k={urllib.parse.quote_plus(query)}"
-        # Rotation d'User-Agents
-        user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-        ]
-        headers = {
-            "User-Agent": random.choice(user_agents),
-            "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8",
-            "Referer": "https://www.google.com/"
-        }
+        response = requests.get(url, headers=headers, timeout=15)
         
-        r = requests.get(url, headers=headers, timeout=12)
-        
-        if "captcha" in r.text.lower() or r.status_code != 200:
-            raise Exception(f"Amazon Blocked (Status: {r.status_code})")
-            
-        # Utilisation de lxml pour plus de robustesse
-        soup = BeautifulSoup(r.content, "lxml")
+        if "captcha" in response.text.lower() or response.status_code != 200:
+            return None, "🔥 BLOQUÉ PAR AMAZON : L'IP du serveur est repérée. Le scraping réel est impossible pour le moment."
+        soup = BeautifulSoup(response.content, "lxml")
         items = soup.find_all("div", {"data-component-type": "s-search-result"})
         
         if not items:
-            raise Exception("Pas de résultats trouvés sur la page.")
+            return None, "📵 AUCUN RÉSULTAT : Amazon n'a retourné aucun produit."
         for i in items[:15]:
             try:
                 # 1. Titre
@@ -162,230 +109,110 @@ def ultra_scan(query):
                 if not title_tag: continue
                 t = title_tag.text.strip()
                 
-                # 2. Prix - Extraction numérique robuste
-                p_box = i.find("span", "a-price-whole")
+                # 2. Prix (Extraction précise)
+                p_whole = i.find("span", "a-price-whole")
                 p_frac = i.find("span", "a-price-fraction")
-                if p_box:
-                    # On ne garde que les chiffres pour le prix 'entier'
-                    p_whole_str = "".join(filter(str.isdigit, p_box.text))
-                    p_frac_str = "".join(filter(str.isdigit, p_frac.text)) if p_frac else "00"
-                    if p_whole_str:
-                        p = float(f"{p_whole_str}.{p_frac_str}")
-                    else:
-                        p = random.uniform(20.0, 50.0)
-                else:
-                    p = random.uniform(20.0, 50.0)
+                if p_whole:
+                    price_str = "".join(filter(str.isdigit, p_whole.text)) or "0"
+                    frac_str = "".join(filter(str.isdigit, p_frac.text)) if p_frac else "00"
+                    p = float(f"{price_str}.{frac_str}")
+                else: continue # On ignore les produits sans prix affiché
                 
                 # 3. Note
                 rt_tag = i.find("span", {"class": "a-icon-alt"})
+                rt = 4.0
                 if rt_tag:
-                    # Format "4,5 sur 5" ou "4.5 out of 5"
                     rt_match = re.search(r"(\d[,\.]\d)", rt_tag.text)
-                    rt = float(rt_match.group(1).replace(',', '.')) if rt_match else 4.2
-                else:
-                    rt = 4.0
+                    if rt_match: rt = float(rt_match.group(1).replace(',', '.'))
                 
-                # 4. Avis - Extraction numérique robuste
+                # 4. Avis
                 av_tag = i.find("span", {"class": "a-size-base", "dir": "auto"})
-                if av_tag:
-                    av_str = "".join(filter(str.isdigit, av_tag.text))
-                    av = int(av_str) if av_str else random.randint(50, 500)
-                else:
-                    av = random.randint(20, 300)
-                
-            # 5. Lien vers le produit RÉEL (Nettoyage pro)
-                link_tag = i.find("a", href=True)
-                if link_tag and "/dp/" in link_tag['href']:
-                    # On extrait le ASIN pour reconstruire un lien propre
-                    asin_match = re.search(r"/dp/([A-Z0-9]{10})", link_tag['href'])
-                    link = f"https://www.amazon.fr/dp/{asin_match.group(1)}" if asin_match else "https://www.amazon.fr" + link_tag['href'].split('/ref=')[0]
-                else:
-                    link = "https://www.amazon.fr"
-                
+                av = 0
+                if av_tag and any(c.isdigit() for c in av_tag.text):
+                    av = int("".join(filter(str.isdigit, av_tag.text)))
+                # 5. Lien réel vers le vendeur
+                link_tag = i.h2.find("a", href=True)
+                link = "https://www.amazon.fr" + link_tag['href'].split('/ref=')[0] if link_tag else "#"
                 sales, rev = estimate_metrics(av, rt, p)
                 data.append({
-                    "💎 Produit": t, 
-                    "Prix (€)": round(p, 2), 
-                    "Note": rt, 
-                    "Avis": av, 
-                    "Ventes/Mois": sales, 
-                    "CA/Mois (€)": int(rev),
-                    "Lien": link,
-                    "Source": "📡 RÉEL"
+                    "💎 Produit": t[:70] + "...", 
+                    "Prix (€)": p, "Note": rt, "Avis": av, 
+                    "Ventes/Mois": sales, "CA/Mois (€)": int(rev),
+                    "Lien": link
                 })
-            except Exception: continue
-        
-        if len(data) < 2: raise Exception("Data empty")
-        return pd.DataFrame(data)
+            except: continue
+        if not data:
+            return None, "⚠️ ERREUR PARSING : Impossible de lire les prix sur cette page Amazon."
+            
+        return pd.DataFrame(data), None
     except Exception as e:
-        # Fallback intelligent
-        results = []
-        for k in range(12):
-            p = random.uniform(25, 95)
-            av = random.randint(40, 4000)
-            rt = random.uniform(3.6, 4.9)
-            s, r = estimate_metrics(av, rt, p)
-            results.append({
-                "💎 Produit": f"[ESTIMATION] {query.upper()} {random.choice(['Expert', 'Pro', 'Elite', 'Série Gold'])}",
-                "Prix (€)": round(p, 2), "Note": round(rt, 1), "Avis": av, "Ventes/Mois": s, "CA/Mois (€)": int(r),
-                "Lien": "https://www.amazon.fr",
-                "Source": "🧠 SIMULATION IA (Amazon Blocked)"
-            })
-        return pd.DataFrame(results)
-# --- 4. DASHBOARD ULTIME ---
+        return None, f"🌋 ERREUR TECHNIQUE : {str(e)}"
+# --- 4. INTERFACE ---
 st.markdown("""
 <div class='war-room-header'>
-    <h1 style='margin:0; letter-spacing:5px;'>🛡️ SNIPER OS : WAR ROOM</h1>
-    <p style='margin:0; opacity:0.7;'>INTELLIGENCE DE MARCHÉ EN TEMPS RÉEL // VERSION ULTIME</p>
+    <h1 style='margin:0; letter-spacing:5px;'>🛡️ SNIPER OS : LIVE DATA FR</h1>
+    <p style='margin:0; opacity:0.7;'>DONNÉES RÉELLES AMZ.FR // REVENUS ESTIMÉS</p>
 </div>
 """, unsafe_allow_html=True)
 if 'data' not in st.session_state: st.session_state.data = None
-# Barre Tactique Latérale
+if 'query_input' not in st.session_state: st.session_state.query_input = ""
 with st.sidebar:
-    st.markdown("### 🛠️ CONTRÔLE DE MISSION")
+    st.markdown("### 🛠️ CIBLE")
+    query = st.text_input("RECHERCHE PRODUIT", value=st.session_state.query_input, placeholder="ex: fontaine chat inox")
+    st.session_state.query_input = query
     
-    # Gestionnaire de state pour le champ de recherche
-    if 'search_query_input' not in st.session_state:
-        st.session_state.search_query_input = ""
-        
-    query = st.text_input("CIBLE À SNIPER", 
-                         value=st.session_state.search_query_input,
-                         placeholder="ex: Couteau Cuisine Professionnel",
-                         key="search_main")
-    
-    # Mise à jour du state si saisi manuellement
-    st.session_state.search_query_input = query
-    
-    st.divider()
-    if st.button("🚀 INITIALISER L'EXTRACTION"):
+    if st.button("🚀 LANCER LE SCAN RÉEL"):
         if query:
-            with st.spinner("INFILTRATION..."):
-                st.session_state.data = ultra_scan(query)
-                st.session_state.niche = query
-        else: st.error("ERREUR: Cible non définie.")
+            with st.spinner("Extraction des revenus Amazon France en cours..."):
+                df, err = fetch_real_amazon_data(query)
+                if err: st.error(err)
+                else: st.session_state.data = df
+        else: st.warning("Entrez un produit.")
+    st.divider()
+    st.markdown("### 🔍 AUTO-SUGGESTIONS")
     if query:
-        if st.button("🔍 DÉCOUVRIR SOUS-NICHES", type="secondary"):
-            with st.spinner("Analyse des tendances Amazon FR..."):
-                sugs = get_amazon_suggestions(query)
-                if sugs: st.session_state.suggestions = sugs
-                else: st.info("Aucune sous-niche trouvée pour ce terme.")
-    
-    if 'suggestions' in st.session_state and st.session_state.suggestions:
-        st.write("---")
-        st.caption("CLIQUEZ POUR SCANNER DIRECTEMENT :")
-        for s in st.session_state.suggestions[:8]:
-            if st.button(f"🎯 {s.upper()}", key=f"sug_btn_{s}", use_container_width=True):
-                st.session_state.search_query_input = s
-                with st.spinner(f"Scan éclair sur {s.upper()}..."):
-                    st.session_state.data = ultra_scan(s)
-                    st.session_state.niche = s
-                st.rerun()
+        if st.button("DÉCOUVRIR SOUS-NICHES"):
+            sugs = get_amazon_suggestions(query)
+            if sugs:
+                for s in sugs[:8]:
+                    if st.button(f"🎯 {s.upper()}", key=f"s_{s}"):
+                        st.session_state.query_input = s
+                        st.rerun()
+# --- DASHBOARD ---
 if st.session_state.data is not None:
     df = st.session_state.data
     
-    # Badge de Statut (Transparent pour l'utilisateur sur la source)
-    source_type = df["Source"].iloc[0]
-    if "RÉEL" in source_type:
-        st.markdown(f"<div style='background:#004d13; color:#00ff41; padding:5px 15px; border-radius:30px; display:inline-block; font-size:12px; font-weight:bold; border:1px solid #00ff41; margin-bottom:10px;'>{source_type}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div style='background:#4d0000; color:#ff4b4b; padding:5px 15px; border-radius:30px; display:inline-block; font-size:12px; font-weight:bold; border:1px solid #ff4b4b; margin-bottom:10px;'>{source_type}</div>", unsafe_allow_html=True)
-    
-    # 1. KPI PANORAMIQUE
+    # KPIs
     c1, c2, c3, c4 = st.columns(4)
-    with c1: 
-        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Revenu Total Marché</div><div class='metric-value'>{int(df['CA/Mois (€)'].sum())}€</div></div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Ventes Moyennes</div><div class='metric-value'>{int(df['Ventes/Mois'].mean())}</div></div>", unsafe_allow_html=True)
-    with c3:
-        opp_score = int(100 - (df['Avis'].mean() / 15))
-        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Score Opportunité</div><div class='metric-value' style='color:{'#00ff41' if opp_score > 60 else '#ff003c'}'>{max(5, opp_score)}/100</div></div>", unsafe_allow_html=True)
-    with c4:
-        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Prix de Vente Idéal</div><div class='metric-value' style='color:#ffcc00'>{round(df['Prix (€)'].mean(), 2)}€</div></div>", unsafe_allow_html=True)
-    # 2. TABS STRATÉGIQUES
-    t1, t2, t3, t4, t5 = st.tabs(["📊 X-RAY", "🔍 SEO SNIPER", "⚡ SOURCING", "💥 PAIN POINTS", "🧠 STRATÉGIE"])
+    with c1: st.markdown(f"<div class='tactical-card'><div class='metric-title'>Revenu Estimé</div><div class='metric-value'>{int(df['CA/Mois (€)'].sum())}€</div></div>", unsafe_allow_html=True)
+    with c2: st.markdown(f"<div class='tactical-card'><div class='metric-title'>Ventes Moy.</div><div class='metric-value'>{int(df['Ventes/Mois'].mean())}</div></div>", unsafe_allow_html=True)
+    with c3: st.markdown(f"<div class='tactical-card'><div class='metric-title'>Prix Moyen</div><div class='metric-value'>{round(df['Prix (€)'].mean(), 2)}€</div></div>", unsafe_allow_html=True)
+    with c4: st.markdown(f"<div class='tactical-card'><div class='metric-title'>Note Moyenne</div><div class='metric-value'>{round(df['Note'].mean(), 1)}/5</div></div>", unsafe_allow_html=True)
+    t1, t2, t3 = st.tabs(["📊 X-RAY (REEL)", "🔍 SEO MOTS-CLÉS", "💰 CALCUL PROFIT"])
+    
     with t1:
-        st.subheader("Listing Haute Précision")
         st.dataframe(
-            df.style.highlight_max(subset=["CA/Mois (€)"], color="#1b4d00"), 
+            df, 
             use_container_width=True,
-            column_config={
-                "Lien": st.column_config.LinkColumn(
-                    "Lien Réel",
-                    help="Cliquez pour ouvrir la fiche Amazon réelle",
-                    validate=r"^https://www\.amazon\.fr/.*",
-                    max_chars=100,
-                    display_text="Ouvrir sur Amazon 🔗"
-                )
-            },
+            column_config={"Lien": st.column_config.LinkColumn("Lien Amazon", display_text="Lien Vendeur 🔗")},
             hide_index=True
         )
-        
-        st.subheader("Rapport de Force (Revenue vs Avis)")
-        fig = px.scatter(df, x="Avis", y="CA/Mois (€)", size="Ventes/Mois", color="Note", hover_name="💎 Produit", template="plotly_dark")
-        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, use_container_width=True)
+        st.download_button("📥 Télécharger DATA (CSV)", df.to_csv(index=False), "sniper_data.csv")
     with t2:
-        st.subheader("Les 10 Mots-Clés Dominants")
         kw = get_keywords(df["💎 Produit"].tolist())
-        col_kw1, col_kw2 = st.columns([1, 2])
-        with col_kw1:
-            for word, count in kw:
-                st.markdown(f"- **{word.upper()}** : présent {count} fois")
-        with col_kw2:
-            kw_df = pd.DataFrame(kw, columns=['Mot', 'Freq'])
-            fig_kw = px.pie(kw_df, values='Freq', names='Mot', hole=.4, color_discrete_sequence=px.colors.sequential.Greens_r)
-            fig_kw.update_layout(showlegend=False, paper_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_kw, use_container_width=True)
-        
-        st.info("💡 CONSEIL SEO : Intégrez ces mots-clés dans votre futur titre pour ranker instantanément.")
+        st.write("### Mots-clés les plus utilisés par les vendeurs :")
+        for word, count in kw:
+            st.markdown(f"- **{word.upper()}** ({count} fois)")
     with t3:
-        st.subheader("Sourcing Direct (Alibaba / 1688 / Taobao)")
-        st.write("Cliquez sur les liens pour trouver vos fournisseurs au meilleur prix :")
-        s_keyword = st.session_state.niche
+        p_v = st.number_input("Prix de Vente (€)", value=float(round(df['Prix (€)'].mean(), 2)))
+        p_a = st.number_input("Prix d'Achat (DDP) (€)", value=10.0)
         
-        col_src1, col_src2, col_src3 = st.columns(3)
-        col_src1.markdown(f"[🔍 Chercher sur ALIBABA](https://french.alibaba.com/trade/search?SearchText={urllib.parse.quote(s_keyword)})")
-        col_src2.markdown(f"[📦 Chercher sur 1688 (Chine)](https://s.1688.com/youyuan/index.htm?tab=imageSearch&imageAddress=&searchText={urllib.parse.quote(s_keyword)})")
-        col_src3.markdown(f"[🏭 Chercher sur MADE-IN-CHINA](https://fr.made-in-china.com/multi-search/{urllib.parse.quote(s_keyword)}/F1/1.html)")
+        comm = p_v * 0.15
+        fba = 5.5
+        tva = p_v * 0.20
+        profit = p_v - p_a - comm - fba - tva
         
-        st.divider()
-        st.markdown("### 🧮 CALCULATEUR DE MARGE AVANCÉ")
-        st_p = st.number_input("Prix de Vente Ciblé (€)", value=float(round(df['Prix (€)'].mean(), 2)))
-        st_c = st.number_input("Coût Produit + Transport DDP (€)", value=10.0)
-        
-        frais_amz = (st_p * 0.15) + 5.5 # Commission + FBA estimé
-        taxe = st_p * 0.20 # TVA 20%
-        ads = st_p * 0.15 # 15% de budget pub
-        net = st_p - st_c - frais_amz - taxe - ads
-        
-        col_res1, col_res2 = st.columns(2)
-        col_res1.metric("PROFIT NET ESTIMÉ", f"{round(net, 2)}€", delta=f"{int((net/st_p)*100)}% Marge")
-        col_res2.metric("PROFIT MENSUEL (Potentiel)", f"{int(net * df['Ventes/Mois'].mean())}€")
-    with t4:
-        st.subheader("Analyse des Faiblesses Concurrentes")
-        analysis = pain_point_analyzer(df)
-        st.markdown(f"<div style='background:#111; padding:20px; border-radius:10px; border:1px solid #333;'>{analysis}</div>", unsafe_allow_html=True)
-        
-        st.markdown("### 🧪 STRATÉGIE DE DIFFÉRENCIATION")
-        if "FRAGILITÉ" in analysis:
-            st.write("👉 **Solution :** Contactez le fournisseur pour doubler l'épaisseur du matériau ou changer d'assemblage.")
-        elif "LIVRAISON" in analysis:
-            st.write("👉 **Solution :** Créez une boîte en carton rigide personnalisée avec un guide d'utilisation premium.")
-        else:
-            st.write("👉 **Solution :** Jouez sur un nouveau coloris (ex: Noir Mat, Or Rose) ou un bundle (accessoire offert).")
-    with t5:
-        st.subheader("Plan d'Action Immédiat")
-        st.markdown("""
-        1. **Phase 1 :** Commander 3 échantillons sur Alibaba (coût estimé: 150€).
-        2. **Phase 2 :** Faire un shooting photo 'Lifestyle' professionnel.
-        3. **Phase 3 :** Lancer sur Amazon avec un prix agressif (-10% vs moyenne) pour les 10 premières ventes.
-        4. **Phase 4 :** Activer la campagne Sniper ADS sur les mots-clés identifiés dans SEO SNIPER.
-        """)
-        
-        if st.button("🧧 GÉNÉRER DOSSIER DE MISSION PDF"):
-            st.balloons()
-            st.info("Rapport compilé. Prêt pour le déploiement.")
+        st.metric("Net Profit / Unité", f"{round(profit, 2)} €", delta=f"{int((profit/p_v)*100)}% Marge")
+        st.info(f"Profit Mensuel Potentiel : **{int(profit * df['Ventes/Mois'].mean())} €**")
 else:
-    st.info("🛰️ SYSTÈME EN ATTENTE. Entrez une cible et cliquez sur 'Initialiser l'Extraction'.")
-st.markdown("---")
-st.caption("SNIPER OS © 2026 // SECURED CONNECTION // MODULE ULTIME ACTIVÉ")
+    st.info("🛰️ En attente de cible Amazon France.")
