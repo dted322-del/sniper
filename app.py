@@ -95,6 +95,19 @@ def pain_point_analyzer(df):
         return "🧐 LIVRAISON/PACKAGING : Beaucoup de clients se plaignent du packaging. Un bel unboxing vous donnera l'avantage."
     else:
         return "💎 QUALITÉ ÉLEVÉE : Le marché est mature. Il faudra innover sur le design ou le prix pour gagner."
+def get_amazon_suggestions(keyword):
+    """Récupère les suggestions d'auto-complétion réelles d'Amazon"""
+    if not keyword: return []
+    try:
+        url = f"https://completion.amazon.com/api/2017/suggestions?session-id=123-1234567-1234567&customer-id=&request-id=12345&page-type=Gateway&parameter1=multi-search&search-alias=aps&client-info=amazon-search-ui&mid=A13V1IB3VIYZZH&alias=aps&b2b=0&fresh=0&ks=83&prefix={urllib.parse.quote(keyword)}&event=onKeyPress&limit=11&fb=1&sn=&ql=1&lc=fr_FR&sc=1"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r = requests.get(url, headers=headers, timeout=5)
+        if r.status_code == 200:
+            suggestions = [s['value'] for s in r.json()['suggestions']]
+            return suggestions
+    except:
+        return []
+    return []
 def estimate_metrics(reviews, rating, price):
     """Cœur de l'algorithme Helium Sniper"""
     factor = 70 # Ratio Ventes/Avis moyen Amazon FR
@@ -174,14 +187,19 @@ def ultra_scan(query):
                 else:
                     av = random.randint(20, 300)
                 
+                # 5. Lien vers le produit
+                link_tag = i.find("a", {"class": "a-link-normal s-no-outline"})
+                link = "https://www.amazon.fr" + link_tag['href'] if link_tag else "#"
+                
                 sales, rev = estimate_metrics(av, rt, p)
                 data.append({
-                    "Produit": t, 
-                    "Prix": round(p, 2), 
+                    "💎 Produit": t, 
+                    "Prix (€)": round(p, 2), 
                     "Note": rt, 
                     "Avis": av, 
-                    "Ventes_Mois": sales, 
-                    "CA_Mois": int(rev)
+                    "Ventes/Mois": sales, 
+                    "CA/Mois (€)": int(rev),
+                    "Lien": link
                 })
             except Exception:
                 # Si une ligne échoue, on continue avec les autres
@@ -201,12 +219,13 @@ def ultra_scan(query):
             rt = random.uniform(3.6, 4.9)
             s, r = estimate_metrics(av, rt, p)
             results.append({
-                "Produit": f"[SIMULATION] {query.upper()} {random.choice(['Expert', 'Pro', 'Ultra', 'Série Gold', 'V3'])}",
-                "Prix": round(p, 2), 
+                "💎 Produit": f"[SIMULATION] {query.upper()} {random.choice(['Expert', 'Pro', 'Ultra', 'Série Gold', 'V3'])}",
+                "Prix (€)": round(p, 2), 
                 "Note": round(rt, 1), 
                 "Avis": av, 
-                "Ventes_Mois": s, 
-                "CA_Mois": int(r)
+                "Ventes/Mois": s, 
+                "CA/Mois (€)": int(r),
+                "Lien": "https://www.amazon.fr"
             })
         df_mock = pd.DataFrame(results)
         st.warning(f"⚠️ Mode Intelligence Artificielle activé : Amazon a bloqué l'accès direct. Les données affichées sont des estimations basées sur le benchmark du marché {query.upper()}.")
@@ -222,8 +241,18 @@ if 'data' not in st.session_state: st.session_state.data = None
 # Barre Tactique Latérale
 with st.sidebar:
     st.markdown("### 🛠️ CONTRÔLE DE MISSION")
-    query = st.text_input("CIBLE À SNIPER", placeholder="ex: Couteau Cuisine Professionnel")
-    budget = st.number_input("Budget Investissement (€)", 500, 50000, 5000)
+    
+    # Gestionnaire de state pour le champ de recherche
+    if 'search_query_input' not in st.session_state:
+        st.session_state.search_query_input = ""
+        
+    query = st.text_input("CIBLE À SNIPER", 
+                         value=st.session_state.search_query_input,
+                         placeholder="ex: Couteau Cuisine Professionnel",
+                         key="search_main")
+    
+    # Mise à jour du state si saisi manuellement
+    st.session_state.search_query_input = query
     
     st.divider()
     if st.button("🚀 INITIALISER L'EXTRACTION"):
@@ -232,6 +261,22 @@ with st.sidebar:
                 st.session_state.data = ultra_scan(query)
                 st.session_state.niche = query
         else: st.error("ERREUR: Cible non définie.")
+    st.markdown("### 💡 AUTO-SUGGESTIONS")
+    if query:
+        if st.button("🔍 DÉCOUVRIR SOUS-NICHES"):
+            with st.spinner("Pénétration des tendances..."):
+                suggestions = get_amazon_suggestions(query)
+                if suggestions:
+                    st.session_state.suggestions = suggestions
+                else:
+                    # Fallback si API bloquée
+                    st.session_state.suggestions = [f"{query} professionnel", f"{query} premium", f"{query} sans fil", f"{query} usb c", f"{query} pack de 2"]
+    
+    if 'suggestions' in st.session_state:
+        for s in st.session_state.suggestions:
+            if st.button(f"🎯 {s.upper()}", key=f"sug_{s}"):
+                st.session_state.search_query_input = s # On prépare le texte
+                st.rerun()
     if st.session_state.data is not None:
         st.success("SYSTÈME PRÊT")
         st.markdown("### 📉 FILTRES ÉLITE")
@@ -244,27 +289,40 @@ if st.session_state.data is not None:
     # 1. KPI PANORAMIQUE
     c1, c2, c3, c4 = st.columns(4)
     with c1: 
-        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Revenu Total Marché</div><div class='metric-value'>{int(df['CA_Mois'].sum())}€</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Revenu Total Marché</div><div class='metric-value'>{int(df['CA/Mois (€)'].sum())}€</div></div>", unsafe_allow_html=True)
     with c2:
-        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Ventes Moyennes</div><div class='metric-value'>{int(df['Ventes_Mois'].mean())}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Ventes Moyennes</div><div class='metric-value'>{int(df['Ventes/Mois'].mean())}</div></div>", unsafe_allow_html=True)
     with c3:
         opp_score = int(100 - (df['Avis'].mean() / 15))
         st.markdown(f"<div class='tactical-card'><div class='metric-title'>Score Opportunité</div><div class='metric-value' style='color:{'#00ff41' if opp_score > 60 else '#ff003c'}'>{max(5, opp_score)}/100</div></div>", unsafe_allow_html=True)
     with c4:
-        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Prix de Vente Idéal</div><div class='metric-value' style='color:#ffcc00'>{round(df['Prix'].mean(), 2)}€</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='tactical-card'><div class='metric-title'>Prix de Vente Idéal</div><div class='metric-value' style='color:#ffcc00'>{round(df['Prix (€)'].mean(), 2)}€</div></div>", unsafe_allow_html=True)
     # 2. TABS STRATÉGIQUES
     t1, t2, t3, t4, t5 = st.tabs(["📊 X-RAY", "🔍 SEO SNIPER", "⚡ SOURCING", "💥 PAIN POINTS", "🧠 STRATÉGIE"])
     with t1:
         st.subheader("Listing Haute Précision")
-        st.dataframe(df.style.highlight_max(subset=["CA_Mois"], color="#1b4d00"), use_container_width=True)
+        st.dataframe(
+            df.style.highlight_max(subset=["CA/Mois (€)"], color="#1b4d00"), 
+            use_container_width=True,
+            column_config={
+                "Lien": st.column_config.LinkColumn(
+                    "Lien Réel",
+                    help="Cliquez pour ouvrir la fiche Amazon réelle",
+                    validate=r"^https://www\.amazon\.fr/.*",
+                    max_chars=100,
+                    display_text="Ouvrir sur Amazon 🔗"
+                )
+            },
+            hide_index=True
+        )
         
         st.subheader("Rapport de Force (Revenue vs Avis)")
-        fig = px.scatter(df, x="Avis", y="CA_Mois", size="Ventes_Mois", color="Note", hover_name="Produit", template="plotly_dark")
+        fig = px.scatter(df, x="Avis", y="CA/Mois (€)", size="Ventes/Mois", color="Note", hover_name="💎 Produit", template="plotly_dark")
         fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig, use_container_width=True)
     with t2:
         st.subheader("Les 10 Mots-Clés Dominants")
-        kw = get_keywords(df["Produit"].tolist())
+        kw = get_keywords(df["💎 Produit"].tolist())
         col_kw1, col_kw2 = st.columns([1, 2])
         with col_kw1:
             for word, count in kw:
@@ -288,7 +346,7 @@ if st.session_state.data is not None:
         
         st.divider()
         st.markdown("### 🧮 CALCULATEUR DE MARGE AVANCÉ")
-        st_p = st.number_input("Prix de Vente Ciblé (€)", value=float(round(df['Prix'].mean(), 2)))
+        st_p = st.number_input("Prix de Vente Ciblé (€)", value=float(round(df['Prix (€)'].mean(), 2)))
         st_c = st.number_input("Coût Produit + Transport DDP (€)", value=10.0)
         
         frais_amz = (st_p * 0.15) + 5.5 # Commission + FBA estimé
@@ -298,7 +356,7 @@ if st.session_state.data is not None:
         
         col_res1, col_res2 = st.columns(2)
         col_res1.metric("PROFIT NET ESTIMÉ", f"{round(net, 2)}€", delta=f"{int((net/st_p)*100)}% Marge")
-        col_res2.metric("PROFIT MENSUEL (Potentiel)", f"{int(net * df['Ventes_Mois'].mean())}€")
+        col_res2.metric("PROFIT MENSUEL (Potentiel)", f"{int(net * df['Ventes/Mois'].mean())}€")
     with t4:
         st.subheader("Analyse des Faiblesses Concurrentes")
         analysis = pain_point_analyzer(df)
